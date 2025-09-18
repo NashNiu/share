@@ -1,0 +1,127 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>局域网文件和信息共享系统</title>
+    <link rel="stylesheet" href="style.css">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+</head>
+<body>
+    <div class="container">
+        <!-- 头部 -->
+        <header class="header">
+            <div class="header-content">
+                <h1><i class="fas fa-share-alt"></i> 局域网共享系统</h1>
+                <div class="status-info">
+                    <span class="status-item">
+                        <i class="fas fa-users"></i>
+                        <span id="userCount">0</span> 人在线
+                    </span>
+                    <span class="status-item">
+                        <i class="fas fa-file"></i>
+                        <span id="fileCount">0</span> 个文件
+                    </span>
+                    <span class="status-item">
+                        <i class="fas fa-comment"></i>
+                        <span id="messageCount">0</span> 条消息
+                    </span>
+                </div>
+            </div>
+        </header>
+
+        <!-- 主要内容区域 -->
+        <main class="main-content">
+            <!-- 左侧：文件共享区域 -->
+            <section class="file-section">
+                <div class="section-header">
+                    <h2><i class="fas fa-folder-open"></i> 文件共享</h2>
+                    <button id="refreshFiles" class="btn btn-secondary">
+                        <i class="fas fa-sync-alt"></i> 刷新
+                    </button>
+                </div>
+
+                <!-- 文件上传区域 -->
+                <div class="upload-area" id="uploadArea">
+                    <div class="upload-content">
+                        <i class="fas fa-cloud-upload-alt"></i>
+                        <p>拖拽文件到这里或点击选择文件</p>
+                        <p class="upload-hint">支持所有文件类型，最大100MB</p>
+                        <input type="file" id="fileInput" multiple style="display: none;">
+                        <button class="btn btn-primary" onclick="document.getElementById('fileInput').click()">
+                            <i class="fas fa-plus"></i> 选择文件
+                        </button>
+                    </div>
+                </div>
+
+                <!-- 文件列表 -->
+                <div class="file-list" id="fileList">
+                    <div class="empty-state">
+                        <i class="fas fa-folder-open"></i>
+                        <p>暂无共享文件</p>
+                    </div>
+                </div>
+            </section>
+
+            <!-- 右侧：聊天区域 -->
+            <section class="chat-section">
+                <div class="section-header">
+                    <h2><i class="fas fa-comments"></i> 实时聊天</h2>
+                    <div class="chat-actions">
+                        <button id="copyAllMessages" class="btn btn-secondary btn-small" title="复制所有消息">
+                            <i class="fas fa-copy"></i> 复制全部
+                        </button>
+                        <div class="user-info">
+                            <input type="text" id="userName" placeholder="输入你的昵称" maxlength="20">
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 消息显示区域 -->
+                <div class="messages-container" id="messagesContainer">
+                    <div class="welcome-message">
+                        <i class="fas fa-comment-dots"></i>
+                        <p>欢迎使用局域网共享系统！</p>
+                        <p>开始聊天或分享文件吧~</p>
+                    </div>
+                </div>
+
+                <!-- 消息输入区域 -->
+                <div class="message-input">
+                    <textarea id="messageInput" placeholder="输入消息..." rows="3"></textarea>
+                    <button id="sendButton" class="btn btn-primary">
+                        <i class="fas fa-paper-plane"></i>
+                    </button>
+                </div>
+            </section>
+        </main>
+
+        <!-- 底部信息 -->
+        <footer class="footer">
+            <div class="footer-content">
+                <p><i class="fas fa-info-circle"></i> 提示：所有文件和信息仅在内存中，重启服务器后会消失</p>
+                <p><i class="fas fa-wifi"></i> 局域网访问：<span id="serverIP">正在获取...</span></p>
+            </div>
+        </footer>
+    </div>
+
+    <!-- 加载提示 -->
+    <div class="loading" id="loading">
+        <div class="loading-content">
+            <i class="fas fa-spinner fa-spin"></i>
+            <p>正在连接服务器...</p>
+        </div>
+    </div>
+
+    <!-- 通知提示 -->
+    <div class="notification" id="notification">
+        <div class="notification-content">
+            <i class="fas fa-check-circle"></i>
+            <span id="notificationText">操作成功</span>
+        </div>
+    </div>
+
+    <script src="/socket.io/socket.io.js"></script>
+    <script src="script.js"></script>
+</body>
+</html>
