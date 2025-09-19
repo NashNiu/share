@@ -11,8 +11,15 @@ class ShareApp {
         this.files = new Map();
         this.messages = [];
         this.users = new Map();
+        this.isMobile = this.detectMobile();
         
         this.init();
+    }
+
+    // 检测移动设备
+    detectMobile() {
+        return /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent) || 
+               (window.innerWidth <= 768);
     }
 
     // 初始化应用
@@ -20,6 +27,7 @@ class ShareApp {
         this.setupEventListeners();
         this.connectToServer();
         this.loadUserData();
+        this.setupMobileOptimizations();
     }
 
     // 设置事件监听器
@@ -306,6 +314,118 @@ class ShareApp {
         textarea.style.height = 'auto';
         const newHeight = Math.min(textarea.scrollHeight, 120); // 最大高度120px
         textarea.style.height = newHeight + 'px';
+    }
+
+    // 设置移动端优化
+    setupMobileOptimizations() {
+        if (!this.isMobile) return;
+
+        // 防止双击缩放
+        let lastTouchEnd = 0;
+        document.addEventListener('touchend', (e) => {
+            const now = (new Date()).getTime();
+            if (now - lastTouchEnd <= 300) {
+                e.preventDefault();
+            }
+            lastTouchEnd = now;
+        }, false);
+
+        // 优化文件上传体验
+        this.optimizeFileUpload();
+        
+        // 优化键盘弹出时的布局
+        this.optimizeKeyboardLayout();
+        
+        // 添加触摸反馈
+        this.addTouchFeedback();
+    }
+
+    // 优化文件上传体验
+    optimizeFileUpload() {
+        const fileInput = document.getElementById('fileInput');
+        const uploadArea = document.getElementById('uploadArea');
+
+        // 移动端文件选择优化
+        if (fileInput) {
+            fileInput.setAttribute('accept', '*/*');
+            fileInput.setAttribute('capture', 'environment'); // 允许相机拍照
+        }
+
+        // 添加上传进度提示
+        const originalUploadFiles = this.uploadFiles.bind(this);
+        this.uploadFiles = (files) => {
+            if (files.length > 0) {
+                this.showNotification(`开始上传 ${files.length} 个文件...`, 'info');
+            }
+            originalUploadFiles(files);
+        };
+    }
+
+    // 优化键盘弹出时的布局
+    optimizeKeyboardLayout() {
+        const messageInput = document.getElementById('messageInput');
+        if (!messageInput) return;
+
+        let initialViewportHeight = window.innerHeight;
+        
+        // 监听视口高度变化（键盘弹出/收起）
+        const handleResize = () => {
+            const currentHeight = window.innerHeight;
+            const heightDiff = initialViewportHeight - currentHeight;
+            
+            if (heightDiff > 150) { // 键盘弹出
+                document.body.classList.add('keyboard-open');
+                // 滚动到输入框
+                setTimeout(() => {
+                    messageInput.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                }, 100);
+            } else { // 键盘收起
+                document.body.classList.remove('keyboard-open');
+            }
+        };
+
+        window.addEventListener('resize', handleResize);
+        
+        // 输入框获得焦点时的优化
+        messageInput.addEventListener('focus', () => {
+            setTimeout(() => {
+                messageInput.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            }, 300);
+        });
+    }
+
+    // 添加触摸反馈
+    addTouchFeedback() {
+        // 为按钮添加触摸反馈
+        const buttons = document.querySelectorAll('.btn');
+        buttons.forEach(btn => {
+            btn.addEventListener('touchstart', (e) => {
+                btn.style.transform = 'scale(0.95)';
+            });
+            
+            btn.addEventListener('touchend', (e) => {
+                setTimeout(() => {
+                    btn.style.transform = '';
+                }, 150);
+            });
+        });
+
+        // 为文件项添加触摸反馈
+        document.addEventListener('touchstart', (e) => {
+            const fileItem = e.target.closest('.file-item');
+            if (fileItem) {
+                fileItem.style.transform = 'scale(0.98)';
+            }
+        });
+
+        document.addEventListener('touchend', (e) => {
+            const fileItem = e.target.closest('.file-item');
+            if (fileItem) {
+                setTimeout(() => {
+                    fileItem.style.transform = '';
+                }, 150);
+            }
+        });
     }
 
     // 发送消息
