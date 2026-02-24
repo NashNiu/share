@@ -1,6 +1,6 @@
 /**
- * 局域网文件和信息共享系统 - 前端逻辑
- * 处理文件上传、下载、实时聊天等功能
+ * LAN File and Message Sharing System - Frontend Logic
+ * Handles file upload, download, real-time chat, etc.
  */
 
 class ShareApp {
@@ -16,13 +16,13 @@ class ShareApp {
         this.init();
     }
 
-    // 检测移动设备
+    // Detect mobile device
     detectMobile() {
         return /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent) || 
                (window.innerWidth <= 768);
     }
 
-    // 初始化应用
+    // Initialize application
     init() {
         this.setupEventListeners();
         this.connectToServer();
@@ -30,14 +30,14 @@ class ShareApp {
         this.setupMobileOptimizations();
     }
 
-    // 设置事件监听器
+    // Setup event listeners
     setupEventListeners() {
-        // 文件上传相关
+        // File upload related
         const uploadArea = document.getElementById('uploadArea');
         const fileInput = document.getElementById('fileInput');
         const refreshBtn = document.getElementById('refreshFiles');
 
-        // 拖拽上传
+        // Drag and drop upload
         uploadArea.addEventListener('dragover', (e) => {
             e.preventDefault();
             uploadArea.classList.add('dragover');
@@ -55,7 +55,7 @@ class ShareApp {
             this.uploadFiles(files);
         });
 
-        // 点击上传
+        // Click to upload
         uploadArea.addEventListener('click', () => {
             fileInput.click();
         });
@@ -64,18 +64,18 @@ class ShareApp {
             this.uploadFiles(e.target.files);
         });
 
-        // 刷新文件列表
+        // Refresh file list
         refreshBtn.addEventListener('click', () => {
             this.loadFiles();
         });
 
-        // 聊天相关
+        // Chat related
         const messageInput = document.getElementById('messageInput');
         const sendButton = document.getElementById('sendButton');
         const userNameInput = document.getElementById('userName');
         const copyAllBtn = document.getElementById('copyAllMessages');
 
-        // 发送消息
+        // Send message
         sendButton.addEventListener('click', () => {
             this.sendMessage();
         });
@@ -87,101 +87,102 @@ class ShareApp {
             }
         });
 
-        // 自动调整textarea高度
+        // Auto resize textarea
         messageInput.addEventListener('input', () => {
             this.autoResizeTextarea(messageInput);
         });
 
-        // 复制所有消息
+        // Copy all messages
         copyAllBtn.addEventListener('click', () => {
             this.copyAllMessages();
         });
 
-        // 用户名输入
+        // Username input
         userNameInput.addEventListener('change', (e) => {
-            this.userName = e.target.value.trim() || '匿名用户';
+            this.userName = e.target.value.trim() || 'Anonymous User';
             this.saveUserData();
             if (this.isConnected) {
                 this.socket.emit('userJoin', { name: this.userName });
             }
         });
 
-        // 窗口关闭前保存数据
+        // Save data before window unload
         window.addEventListener('beforeunload', () => {
             this.saveUserData();
         });
     }
 
-    // 连接服务器
+    // Connect to server
     connectToServer() {
         this.showLoading(true);
         
         this.socket = io();
         
         this.socket.on('connect', () => {
-            console.log('已连接到服务器');
+            console.log('Connected to server');
             this.isConnected = true;
             this.showLoading(false);
-            this.showNotification('已连接到服务器', 'success');
+            this.showNotification('Connected to server', 'success');
             
-            // 发送用户信息
+            // Send user info
             if (this.userName) {
                 this.socket.emit('userJoin', { name: this.userName });
             }
             
-            // 加载初始数据
+            // Load initial data
             this.loadFiles();
             this.loadMessages();
+            this.loadServerInfo();
         });
 
         this.socket.on('disconnect', () => {
-            console.log('与服务器断开连接');
+            console.log('Disconnected from server');
             this.isConnected = false;
-            this.showNotification('与服务器断开连接', 'error');
+            this.showNotification('Disconnected from server', 'error');
         });
 
         this.socket.on('connect_error', (error) => {
-            console.error('连接错误:', error);
+            console.error('Connection error:', error);
             this.showLoading(false);
-            this.showNotification('连接服务器失败', 'error');
+            this.showNotification('Failed to connect to server', 'error');
         });
 
-        // 文件相关事件
+        // File related events
         this.socket.on('fileUploaded', (fileData) => {
             this.addFileToList(fileData);
-            this.showNotification(`文件 "${fileData.name}" 上传成功`, 'success');
+            this.showNotification(`File "${fileData.name}" uploaded successfully`, 'success');
         });
 
-        // 消息相关事件
+        // Message related events
         this.socket.on('newMessage', (message) => {
             this.addMessageToList(message);
         });
 
         this.socket.on('userJoined', (user) => {
-            this.showNotification(`${user.name} 加入了聊天`, 'info');
+            this.showNotification(`${user.name} joined the chat`, 'info');
         });
 
         this.socket.on('userLeft', (user) => {
-            this.showNotification(`${user.name} 离开了聊天`, 'info');
+            this.showNotification(`${user.name} left the chat`, 'info');
         });
 
         this.socket.on('userList', (userList) => {
             this.updateUserList(userList);
         });
 
-        // 服务器状态更新
+        // Server status update
         this.socket.on('serverStatus', (status) => {
             this.updateStatus(status);
         });
     }
 
-    // 上传文件
+    // Upload files
     async uploadFiles(files) {
         if (!files || files.length === 0) return;
 
         for (const file of files) {
             if (file.size > 500 * 1024 * 1024) {
-                this.showNotification(`文件 "${file.name}" 超过500MB限制`, 'error');
+                this.showNotification(`File "${file.name}" exceeds 500MB limit`, 'error');
                 continue;
             }
 
@@ -197,18 +198,18 @@ class ShareApp {
 
                 const result = await response.json();
                 if (result.success) {
-                    console.log(`文件上传成功: ${file.name}`);
+                    console.log(`File upload successful: ${file.name}`);
                 } else {
-                    this.showNotification(`文件 "${file.name}" 上传失败`, 'error');
+                    this.showNotification(`File "${file.name}" upload failed`, 'error');
                 }
             } catch (error) {
-                console.error('文件上传错误:', error);
-                this.showNotification(`文件 "${file.name}" 上传失败`, 'error');
+                console.error('File upload error:', error);
+                this.showNotification(`File "${file.name}" upload failed`, 'error');
             }
         }
     }
 
-    // 下载文件
+    // Download file
     downloadFile(fileId, fileName) {
         const link = document.createElement('a');
         link.href = `/download/${fileId}`;
@@ -217,10 +218,10 @@ class ShareApp {
         link.click();
         document.body.removeChild(link);
         
-        this.showNotification(`开始下载 "${fileName}"`, 'success');
+        this.showNotification(`Starting download "${fileName}"`, 'success');
     }
 
-    // 加载文件列表
+    // Load file list
     async loadFiles() {
         try {
             const response = await fetch('/files');
@@ -233,7 +234,7 @@ class ShareApp {
                 fileList.innerHTML = `
                     <div class="empty-state">
                         <i class="fas fa-folder-open"></i>
-                        <p>暂无共享文件</p>
+                        <p>No shared files yet</p>
                     </div>
                 `;
                 return;
@@ -243,16 +244,16 @@ class ShareApp {
                 this.addFileToList(file);
             });
         } catch (error) {
-            console.error('加载文件列表错误:', error);
-            this.showNotification('加载文件列表失败', 'error');
+            console.error('Load file list error:', error);
+            this.showNotification('Failed to load file list', 'error');
         }
     }
 
-    // 添加文件到列表
+    // Add file to list
     addFileToList(fileData) {
         const fileList = document.getElementById('fileList');
         
-        // 移除空状态
+        // Remove empty state
         const emptyState = fileList.querySelector('.empty-state');
         if (emptyState) {
             emptyState.remove();
@@ -274,7 +275,7 @@ class ShareApp {
             </div>
             <div class="file-actions">
                 <button class="btn btn-primary btn-small" onclick="app.downloadFile('${fileData.id}', '${fileData.name}')">
-                    <i class="fas fa-download"></i> 下载
+                    <i class="fas fa-download"></i> Download
                 </button>
             </div>
         `;
@@ -283,7 +284,7 @@ class ShareApp {
         this.files.set(fileData.id, fileData);
     }
 
-    // 获取文件类型图标
+    // Get file type icon
     getFileIcon(mimeType) {
         if (mimeType.startsWith('image/')) return 'fa-image';
         if (mimeType.startsWith('video/')) return 'fa-video';
@@ -297,7 +298,7 @@ class ShareApp {
         return 'fa-file';
     }
 
-    // 获取文件类型CSS类
+    // Get file type CSS class
     getFileTypeClass(mimeType) {
         if (mimeType.startsWith('image/')) return 'image';
         if (mimeType.startsWith('video/')) return 'video';
@@ -309,18 +310,18 @@ class ShareApp {
         return 'default';
     }
 
-    // 自动调整textarea高度
+    // Auto resize textarea
     autoResizeTextarea(textarea) {
         textarea.style.height = 'auto';
-        const newHeight = Math.min(textarea.scrollHeight, 120); // 最大高度120px
+        const newHeight = Math.min(textarea.scrollHeight, 120); // Max height 120px
         textarea.style.height = newHeight + 'px';
     }
 
-    // 设置移动端优化
+    // Setup mobile optimizations
     setupMobileOptimizations() {
         if (!this.isMobile) return;
 
-        // 防止双击缩放
+        // Prevent double tap zoom
         let lastTouchEnd = 0;
         document.addEventListener('touchend', (e) => {
             const now = (new Date()).getTime();
@@ -330,63 +331,62 @@ class ShareApp {
             lastTouchEnd = now;
         }, false);
 
-        // 优化文件上传体验
+        // Optimize file upload experience
         this.optimizeFileUpload();
         
-        // 优化键盘弹出时的布局
+        // Optimize keyboard layout
         this.optimizeKeyboardLayout();
         
-        // 添加触摸反馈
+        // Add touch feedback
         this.addTouchFeedback();
     }
 
-    // 优化文件上传体验
+    // Optimize file upload experience
     optimizeFileUpload() {
         const fileInput = document.getElementById('fileInput');
-        const uploadArea = document.getElementById('uploadArea');
-
-        // 移动端文件选择优化
+        
+        // Mobile file selection optimization
         if (fileInput) {
             fileInput.setAttribute('accept', '*/*');
-            fileInput.setAttribute('capture', 'environment'); // 允许相机拍照
+            fileInput.setAttribute('capture', 'environment'); // Allow camera capture
         }
 
-        // 添加上传进度提示
+        // Add upload progress hint
         const originalUploadFiles = this.uploadFiles.bind(this);
         this.uploadFiles = (files) => {
             if (files.length > 0) {
-                this.showNotification(`开始上传 ${files.length} 个文件...`, 'info');
+                this.showNotification(`Starting upload of ${files.length} files...`, 'info');
             }
             originalUploadFiles(files);
         };
     }
 
-    // 优化键盘弹出时的布局
+    // Optimize keyboard layout
     optimizeKeyboardLayout() {
         const messageInput = document.getElementById('messageInput');
         if (!messageInput) return;
 
         let initialViewportHeight = window.innerHeight;
         
-        // 监听视口高度变化（键盘弹出/收起）
+        // Listen for viewport height changes (keyboard show/hide)
         const handleResize = () => {
             const currentHeight = window.innerHeight;
             const heightDiff = initialViewportHeight - currentHeight;
             
-            if (heightDiff > 150) { // 键盘弹出
+            if (heightDiff > 150) { // Keyboard shown
                 document.body.classList.add('keyboard-open');
-                // 滚动到输入框
+                // Scroll to input
                 setTimeout(() => {
                     messageInput.scrollIntoView({ behavior: 'smooth', block: 'center' });
                 }, 100);
-            } else { // 键盘收起
+            } else { // Keyboard hidden
                 document.body.classList.remove('keyboard-open');
             }
         };
 
         window.addEventListener('resize', handleResize);
         
-        // 输入框获得焦点时的优化
+        // Optimize when input gets focus
         messageInput.addEventListener('focus', () => {
             setTimeout(() => {
                 messageInput.scrollIntoView({ behavior: 'smooth', block: 'center' });
@@ -394,9 +394,9 @@ class ShareApp {
         });
     }
 
-    // 添加触摸反馈
+    // Add touch feedback
     addTouchFeedback() {
-        // 为按钮添加触摸反馈
+        // Add touch feedback for buttons
         const buttons = document.querySelectorAll('.btn');
         buttons.forEach(btn => {
             btn.addEventListener('touchstart', (e) => {
@@ -410,7 +410,7 @@ class ShareApp {
             });
         });
 
-        // 为文件项添加触摸反馈
+        // Add touch feedback for file items
         document.addEventListener('touchstart', (e) => {
             const fileItem = e.target.closest('.file-item');
             if (fileItem) {
@@ -428,44 +428,44 @@ class ShareApp {
         });
     }
 
-    // 发送消息
+    // Send message
     sendMessage() {
         const messageInput = document.getElementById('messageInput');
         const content = messageInput.value.trim();
         
         if (!content) return;
         if (!this.userName) {
-            this.showNotification('请先输入昵称', 'error');
+            this.showNotification('Please enter a nickname first', 'error');
             return;
         }
 
         this.socket.emit('sendMessage', { content });
         messageInput.value = '';
-        // 重置textarea高度
+        // Reset textarea height
         this.autoResizeTextarea(messageInput);
     }
 
-    // 复制单条消息
+    // Copy single message
     copyMessage(messageId) {
         const message = this.messages.find(m => (m.id || m.timestamp) == messageId);
         if (!message) {
-            this.showNotification('消息不存在', 'error');
+            this.showNotification('Message not found', 'error');
             return;
         }
 
         const messageText = `${message.content}`;
         
         this.copyToClipboard(messageText).then(() => {
-            this.showNotification('消息已复制到剪贴板', 'success');
+            this.showNotification('Message copied to clipboard', 'success');
         }).catch(() => {
-            this.showNotification('复制失败，请手动复制', 'error');
+            this.showNotification('Copy failed, please copy manually', 'error');
         });
     }
 
-    // 复制所有消息
+    // Copy all messages
     copyAllMessages() {
         if (this.messages.length === 0) {
-            this.showNotification('没有消息可复制', 'info');
+            this.showNotification('No messages to copy', 'info');
             return;
         }
 
@@ -474,19 +474,19 @@ class ShareApp {
         ).join('\n');
 
         this.copyToClipboard(allMessages).then(() => {
-            this.showNotification(`已复制 ${this.messages.length} 条消息到剪贴板`, 'success');
+            this.showNotification(`Copied ${this.messages.length} messages to clipboard`, 'success');
         }).catch(() => {
-            this.showNotification('复制失败，请手动复制', 'error');
+            this.showNotification('Copy failed, please copy manually', 'error');
         });
     }
 
-    // 复制到剪贴板
+    // Copy to clipboard
     async copyToClipboard(text) {
         if (navigator.clipboard && window.isSecureContext) {
-            // 使用现代 Clipboard API
+            // Use modern Clipboard API
             await navigator.clipboard.writeText(text);
         } else {
-            // 降级到传统方法
+            // Fallback to traditional method
             const textArea = document.createElement('textarea');
             textArea.value = text;
             textArea.style.position = 'fixed';
@@ -507,11 +507,11 @@ class ShareApp {
         }
     }
 
-    // 添加消息到列表
+    // Add message to list
     addMessageToList(message) {
         const messagesContainer = document.getElementById('messagesContainer');
         
-        // 移除欢迎消息
+        // Remove welcome message
         const welcomeMessage = messagesContainer.querySelector('.welcome-message');
         if (welcomeMessage) {
             welcomeMessage.remove();
@@ -528,7 +528,7 @@ class ShareApp {
             <div class="message-info ${isOwn ? 'own' : ''}">
                 <span><i class="fas fa-user"></i> ${this.escapeHtml(message.user)}</span>
                 <span><i class="fas fa-clock"></i> ${this.formatTime(message.timestamp)}</span>
-                <button class="copy-btn" onclick="app.copyMessage('${message.id || Date.now()}')" title="复制消息">
+                <button class="copy-btn" onclick="app.copyMessage('${message.id || Date.now()}')" title="Copy Message">
                     <i class="fas fa-copy"></i>
                 </button>
             </div>
@@ -540,7 +540,7 @@ class ShareApp {
         this.messages.push(message);
     }
 
-    // 加载消息列表
+    // Load message list
     async loadMessages() {
         try {
             const response = await fetch('/messages');
@@ -553,8 +553,8 @@ class ShareApp {
                 messagesContainer.innerHTML = `
                     <div class="welcome-message">
                         <i class="fas fa-comment-dots"></i>
-                        <p>欢迎使用局域网共享系统！</p>
-                        <p>开始聊天或分享文件吧~</p>
+                        <p>Welcome to LAN Share!</p>
+                        <p>Start chatting or sharing files now~</p>
                     </div>
                 `;
                 return;
@@ -564,11 +564,26 @@ class ShareApp {
                 this.addMessageToList(message);
             });
         } catch (error) {
-            console.error('加载消息列表错误:', error);
+            console.error('Load message list error:', error);
         }
     }
 
-    // 更新用户列表
+    // Load server info
+    async loadServerInfo() {
+        try {
+            const response = await fetch('/api/server-info');
+            const info = await response.json();
+            
+            const serverIP = document.getElementById('serverIP');
+            if (serverIP) {
+                serverIP.textContent = `${info.ip}:${info.port}`;
+            }
+        } catch (error) {
+            console.error('Load server info error:', error);
+        }
+    }
+
+    // Update user list
     updateUserList(userList) {
         this.users.clear();
         userList.forEach(user => {
@@ -576,108 +591,84 @@ class ShareApp {
         });
     }
 
-    // 更新状态信息
+    // Update status info
     updateStatus(status) {
         document.getElementById('fileCount').textContent = status.filesCount;
         document.getElementById('messageCount').textContent = status.messagesCount;
         document.getElementById('userCount').textContent = status.usersCount;
     }
 
-    // 显示加载状态
+    // Show loading state
     showLoading(show) {
         const loading = document.getElementById('loading');
         loading.style.display = show ? 'flex' : 'none';
     }
 
-    // 显示通知
+    // Show notification
     showNotification(message, type = 'success') {
         const notification = document.getElementById('notification');
         const notificationText = document.getElementById('notificationText');
+        const notificationIcon = notification.querySelector('i');
         
         notificationText.textContent = message;
-        notification.className = `notification show ${type}`;
         
+        // Set icon based on type
+        notificationIcon.className = '';
+        if (type === 'success') {
+            notificationIcon.className = 'fas fa-check-circle';
+            notification.style.background = '#48bb78';
+        } else if (type === 'error') {
+            notificationIcon.className = 'fas fa-times-circle';
+            notification.style.background = '#f56565';
+        } else if (type === 'info') {
+            notificationIcon.className = 'fas fa-info-circle';
+            notification.style.background = '#4299e1';
+        }
+        
+        notification.classList.add('show');
+        
+        // Hide after 3 seconds
         setTimeout(() => {
             notification.classList.remove('show');
         }, 3000);
     }
 
-    // 格式化时间
-    formatTime(timestamp) {
-        const date = new Date(timestamp);
-        const now = new Date();
-        const diff = now - date;
-        
-        if (diff < 60000) { // 1分钟内
-            return '刚刚';
-        } else if (diff < 3600000) { // 1小时内
-            return `${Math.floor(diff / 60000)}分钟前`;
-        } else if (diff < 86400000) { // 1天内
-            return `${Math.floor(diff / 3600000)}小时前`;
-        } else {
-            return date.toLocaleDateString();
-        }
+    // Format time
+    formatTime(isoString) {
+        const date = new Date(isoString);
+        return date.toLocaleTimeString();
     }
 
-    // HTML转义并保留换行格式
-    escapeHtml(text) {
-        const div = document.createElement('div');
-        div.textContent = text;
-        return div.innerHTML.replace(/\n/g, '<br>');
-    }
-
-    // 保存用户数据
+    // Save user data to local storage
     saveUserData() {
-        localStorage.setItem('shareApp_userName', this.userName);
+        localStorage.setItem('lan_share_username', this.userName);
     }
 
-    // 加载用户数据
+    // Load user data from local storage
     loadUserData() {
-        this.userName = localStorage.getItem('shareApp_userName') || '';
-        if (this.userName) {
-            document.getElementById('userName').value = this.userName;
+        const savedName = localStorage.getItem('lan_share_username');
+        if (savedName) {
+            this.userName = savedName;
+            const userNameInput = document.getElementById('userName');
+            if (userNameInput) {
+                userNameInput.value = savedName;
+            }
         }
     }
-}
 
-// 获取服务器IP地址
-async function getServerIP() {
-    try {
-        const response = await fetch('/api/server-info');
-        const data = await response.json();
-        document.getElementById('serverIP').textContent = data.ip;
-    } catch (error) {
-        // 如果API不存在，尝试从当前URL获取
-        const host = window.location.hostname;
-        const port = window.location.port;
-        document.getElementById('serverIP').textContent = `${host}:${port}`;
+    // Escape HTML to prevent XSS
+    escapeHtml(text) {
+        if (!text) return '';
+        return text
+            .replace(/&/g, "&amp;")
+            .replace(/</g, "&lt;")
+            .replace(/>/g, "&gt;")
+            .replace(/"/g, "&quot;")
+            .replace(/'/g, "&#039;");
     }
 }
 
-// 初始化应用
-let app;
+// Initialize application when DOM is loaded
 document.addEventListener('DOMContentLoaded', () => {
-    app = new ShareApp();
-    getServerIP();
-});
-
-// 全局错误处理
-window.addEventListener('error', (event) => {
-    console.error('全局错误:', event.error);
-    if (app) {
-        app.showNotification('发生未知错误', 'error');
-    }
-});
-
-// 网络状态监听
-window.addEventListener('online', () => {
-    if (app) {
-        app.showNotification('网络已连接', 'success');
-    }
-});
-
-window.addEventListener('offline', () => {
-    if (app) {
-        app.showNotification('网络已断开', 'error');
-    }
+    window.app = new ShareApp();
 });

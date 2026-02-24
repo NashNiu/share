@@ -1,7 +1,7 @@
 {
   "name": "lan-share",
   "version": "1.0.0",
-  "description": "局域网文件和信息共享系统 - 无需存储的实时共享平台",
+  "description": "LAN File and Message Sharing System - No Storage Real-time Sharing Platform",
   "main": "server.js",
   "scripts": {
     "start": "node server.js",
@@ -14,8 +14,8 @@
     "websocket",
     "real-time",
     "chat",
-    "局域网",
-    "文件共享"
+    "lan-share",
+    "file-transfer"
   ],
   "author": "Assistant",
   "license": "MIT",

@@ -1,7 +1,7 @@
 /**
- * 局域网文件和信息共享系统 - 服务器端
- * 基于Express + Socket.IO实现实时通信
- * 不存储数据，所有信息在内存中实时传输
+ * LAN File and Message Sharing System - Server Side
+ * Real-time communication based on Express + Socket.IO
+ * No data storage, all information is transmitted in memory in real-time
  */
 
 const express = require('express');
@@ -13,7 +13,7 @@ const os = require('os');
 const path = require('path');
 const fs = require('fs');
 
-// 创建Express应用
+// Create Express app
 const app = express();
 const server = http.createServer(app);
 const io = socketIo(server, {
@@ -23,35 +23,35 @@ const io = socketIo(server, {
   }
 });
 
-// 中间件配置
+// Middleware configuration
 app.use(cors());
 app.use(express.json());
 app.use(express.static('public'));
 
-// 内存存储（不持久化）
+// Memory storage (no persistence)
 const memoryStore = {
-  files: new Map(), // 存储文件数据
-  messages: [], // 存储聊天消息
-  users: new Map() // 存储在线用户
+  files: new Map(), // Store file data
+  messages: [], // Store chat messages
+  users: new Map() // Store online users
 };
 
-// 配置multer用于文件上传（内存存储）
+// Configure multer for file uploads (memory storage)
 const storage = multer.memoryStorage();
 const upload = multer({ 
   storage: storage,
   limits: {
-    fileSize: 500 * 1024 * 1024 // 限制文件大小为500MB
+    fileSize: 500 * 1024 * 1024 // Limit file size to 500MB
   }
 });
 
-// 获取所有可用的IP地址
+// Get all available IP addresses
 function getAllLocalIPs() {
   const interfaces = os.networkInterfaces();
   const ips = [];
   for (const name of Object.keys(interfaces)) {
     for (const iface of interfaces[name]) {
       if (iface.family === 'IPv4' && !iface.internal) {
-        // 排除常见的虚拟网络地址
+        // Exclude common virtual network addresses
         if (!iface.address.startsWith('172.26.') && 
             !iface.address.startsWith('169.254.')) {
           ips.push({
@@ -65,18 +65,18 @@ function getAllLocalIPs() {
   return ips;
 }
 
-// 获取本机IP地址（优先返回第一个）
+// Get local IP address (prioritize the first one)
 function getLocalIP() {
   const ips = getAllLocalIPs();
   return ips.length > 0 ? ips[0].address : 'localhost';
 }
 
-// 生成唯一ID
+// Generate unique ID
 function generateId() {
   return Date.now().toString(36) + Math.random().toString(36).substr(2);
 }
 
-// 格式化文件大小
+// Format file size
 function formatFileSize(bytes) {
   if (bytes === 0) return '0 Bytes';
   const k = 1024;
@@ -85,11 +85,11 @@ function formatFileSize(bytes) {
   return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
 }
 
-// 文件上传接口
+// File upload endpoint
 app.post('/upload', upload.single('file'), (req, res) => {
   try {
     if (!req.file) {
-      return res.status(400).json({ error: '没有文件上传' });
+      return res.status(400).json({ error: 'No file uploaded' });
     }
 
     const fileId = generateId();
@@ -100,13 +100,13 @@ app.post('/upload', upload.single('file'), (req, res) => {
       type: req.file.mimetype,
       data: req.file.buffer,
       uploadTime: new Date().toISOString(),
-      uploader: req.body.uploader || '匿名用户'
+      uploader: req.body.uploader || 'Anonymous User'
     };
 
-    // 存储到内存
+    // Store in memory
     memoryStore.files.set(fileId, fileInfo);
 
-    // 广播文件信息给所有客户端
+    // Broadcast file info to all clients
     io.emit('fileUploaded', {
       id: fileId,
       name: fileInfo.name,
@@ -117,22 +117,22 @@ app.post('/upload', upload.single('file'), (req, res) => {
       sizeFormatted: formatFileSize(fileInfo.size)
     });
 
-    console.log(`文件上传成功: ${fileInfo.name} (${formatFileSize(fileInfo.size)})`);
+    console.log(`File upload successful: ${fileInfo.name} (${formatFileSize(fileInfo.size)})`);
     res.json({ success: true, fileId: fileId });
   } catch (error) {
-    console.error('文件上传错误:', error);
-    res.status(500).json({ error: '文件上传失败' });
+    console.error('File upload error:', error);
+    res.status(500).json({ error: 'File upload failed' });
   }
 });
 
-// 文件下载接口
+// File download endpoint
 app.get('/download/:fileId', (req, res) => {
   try {
     const fileId = req.params.fileId;
     const fileInfo = memoryStore.files.get(fileId);
 
     if (!fileInfo) {
-      return res.status(404).json({ error: '文件不存在' });
+      return res.status(404).json({ error: 'File not found' });
     }
 
     res.setHeader('Content-Type', fileInfo.type);
@@ -140,14 +140,14 @@ app.get('/download/:fileId', (req, res) => {
     res.setHeader('Content-Length', fileInfo.size);
     res.send(fileInfo.data);
 
-    console.log(`文件下载: ${fileInfo.name}`);
+    console.log(`File download: ${fileInfo.name}`);
   } catch (error) {
-    console.error('文件下载错误:', error);
-    res.status(500).json({ error: '文件下载失败' });
+    console.error('File download error:', error);
+    res.status(500).json({ error: 'File download failed' });
   }
 });
 
-// 获取文件列表
+// Get file list
 app.get('/files', (req, res) => {
   try {
     const files = Array.from(memoryStore.files.values()).map(file => ({
@@ -162,22 +162,22 @@ app.get('/files', (req, res) => {
 
     res.json(files);
   } catch (error) {
-    console.error('获取文件列表错误:', error);
-    res.status(500).json({ error: '获取文件列表失败' });
+    console.error('Get file list error:', error);
+    res.status(500).json({ error: 'Failed to get file list' });
   }
 });
 
-// 获取聊天消息
+// Get chat messages
 app.get('/messages', (req, res) => {
   try {
     res.json(memoryStore.messages);
   } catch (error) {
-    console.error('获取消息列表错误:', error);
-    res.status(500).json({ error: '获取消息列表失败' });
+    console.error('Get message list error:', error);
+    res.status(500).json({ error: 'Failed to get message list' });
   }
 });
 
-// 获取服务器信息
+// Get server info
 app.get('/api/server-info', (req, res) => {
   try {
     res.json({
@@ -191,69 +191,69 @@ app.get('/api/server-info', (req, res) => {
       usersCount: memoryStore.users.size
     });
   } catch (error) {
-    console.error('获取服务器信息错误:', error);
-    res.status(500).json({ error: '获取服务器信息失败' });
+    console.error('Get server info error:', error);
+    res.status(500).json({ error: 'Failed to get server info' });
   }
 });
 
-// WebSocket连接处理
+// WebSocket connection handling
 io.on('connection', (socket) => {
-  console.log(`用户连接: ${socket.id}`);
+  console.log(`User connected: ${socket.id}`);
 
-  // 用户加入
+  // User join
   socket.on('userJoin', (userData) => {
     const user = {
       id: socket.id,
-      name: userData.name || '匿名用户',
+      name: userData.name || 'Anonymous User',
       joinTime: new Date().toISOString()
     };
     
     memoryStore.users.set(socket.id, user);
     
-    // 广播用户加入消息
+    // Broadcast user joined message
     socket.broadcast.emit('userJoined', user);
     
-    // 发送当前在线用户列表
+    // Send current online user list
     socket.emit('userList', Array.from(memoryStore.users.values()));
     
-    console.log(`用户加入: ${user.name}`);
+    console.log(`User joined: ${user.name}`);
   });
 
-  // 发送聊天消息
+  // Send chat message
   socket.on('sendMessage', (messageData) => {
     const message = {
       id: generateId(),
-      user: memoryStore.users.get(socket.id)?.name || '匿名用户',
+      user: memoryStore.users.get(socket.id)?.name || 'Anonymous User',
       content: messageData.content,
       timestamp: new Date().toISOString(),
       type: 'text'
     };
 
-    // 存储消息
+    // Store message
     memoryStore.messages.push(message);
     
-    // 限制消息数量，避免内存溢出
+    // Limit message count to avoid memory overflow
     if (memoryStore.messages.length > 1000) {
       memoryStore.messages = memoryStore.messages.slice(-500);
     }
 
-    // 广播消息给所有客户端
+    // Broadcast message to all clients
     io.emit('newMessage', message);
     
-    console.log(`消息: ${message.user}: ${message.content}`);
+    console.log(`Message: ${message.user}: ${message.content}`);
   });
 
-  // 用户断开连接
+  // User disconnect
   socket.on('disconnect', () => {
     const user = memoryStore.users.get(socket.id);
     if (user) {
       memoryStore.users.delete(socket.id);
       socket.broadcast.emit('userLeft', user);
-      console.log(`用户离开: ${user.name}`);
+      console.log(`User left: ${user.name}`);
     }
   });
 
-  // 发送当前状态
+  // Send current status
   socket.emit('serverStatus', {
     filesCount: memoryStore.files.size,
     messagesCount: memoryStore.messages.length,
@@ -261,16 +261,16 @@ io.on('connection', (socket) => {
   });
 });
 
-// 启动服务器
+// Start server
 const PORT = process.env.PORT || 3000;
 const HOST = getLocalIP();
 const allIPs = getAllLocalIPs();
 
 server.listen(PORT, '0.0.0.0', () => {
-  console.log('\n🚀 局域网文件和信息共享系统已启动!');
+  console.log('\n🚀 LAN File and Message Sharing System Started!');
   console.log('=====================================');
-  console.log(`📱 本机访问: http://localhost:${PORT}`);
-  console.log('🌐 局域网访问地址:');
+  console.log(`📱 Local Access: http://localhost:${PORT}`);
+  console.log('🌐 LAN Access Addresses:');
   if (allIPs.length > 0) {
     allIPs.forEach((ip, index) => {
       console.log(`   ${index + 1}. http://${ip.address}:${PORT} (${ip.interface})`);
@@ -279,27 +279,27 @@ server.listen(PORT, '0.0.0.0', () => {
     console.log(`   http://${HOST}:${PORT}`);
   }
   console.log('=====================================');
-  console.log('💡 提示: 在局域网内其他设备上使用上述IP地址访问');
-  console.log('   ⚠️  如果无法访问，请尝试其他IP地址');
-  console.log('📁 功能: 文件共享 + 实时聊天');
-  console.log('⚡ 特点: 无需存储，内存实时传输');
+  console.log('💡 Tip: Use the above IP addresses to access from other devices in the LAN');
+  console.log('   ⚠️  If unable to access, please try other IP addresses');
+  console.log('📁 Features: File Sharing + Real-time Chat');
+  console.log('⚡ Features: No Storage, Memory Real-time Transmission');
   console.log('=====================================\n');
 });
 
-// 优雅关闭
+// Graceful shutdown
 process.on('SIGINT', () => {
-  console.log('\n正在关闭服务器...');
+  console.log('\nClosing server...');
   server.close(() => {
-    console.log('服务器已关闭');
+    console.log('Server closed');
     process.exit(0);
   });
 });
 
-// 错误处理
+// Error handling
 process.on('uncaughtException', (error) => {
-  console.error('未捕获的异常:', error);
+  console.error('Uncaught Exception:', error);
 });
 
 process.on('unhandledRejection', (reason, promise) => {
-  console.error('未处理的Promise拒绝:', reason);
+  console.error('Unhandled Promise Rejection:', reason);
 });

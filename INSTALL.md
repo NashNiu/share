@@ -1,80 +1,98 @@
-# 安装和使用说明
+# Installation and Usage Instructions
 
-## 快速开始
+[中文说明](INSTALL_zh.md)
 
-### Windows用户
-1. 双击运行 `start.bat` 文件
-2. 等待依赖安装完成
-3. 服务器启动后，在浏览器中访问显示的地址
+## Quick Start
 
-### Linux/Mac用户
-1. 在终端中运行：
+### Windows Users
+
+1. Double-click the `start.bat` file to run.
+2. Wait for dependencies to be installed.
+3. After the server starts, access the displayed address in your browser.
+
+### Linux/Mac Users
+
+1. Run in the terminal:
+
    ```bash
    chmod +x start.sh
    ./start.sh
    ```
-2. 等待依赖安装完成
-3. 服务器启动后，在浏览器中访问显示的地址
 
-### 手动安装
-1. 确保已安装 Node.js (版本 14.0 或更高)
-2. 在项目目录中运行：
+2. Wait for dependencies to be installed.
+3. After the server starts, access the displayed address in your browser.
+
+### Manual Installation
+
+1. Ensure Node.js (version 14.0 or higher) is installed.
+2. Run in the project directory:
+
    ```bash
    npm install
    npm start
    ```
 
-## 系统要求
-- Node.js 14.0 或更高版本
-- 现代浏览器（Chrome、Firefox、Safari、Edge）
-- 局域网网络连接
+## System Requirements
 
-## 功能说明
+- Node.js 14.0 or higher
+- Modern browser support (Chrome, Firefox, Safari, Edge)
+- LAN network connection
 
-### 文件共享
-- 支持拖拽上传文件
-- 支持所有文件类型
-- 文件大小限制：100MB
-- 实时显示文件列表
-- 一键下载文件
+## Feature Description
 
-### 实时聊天
-- 支持多用户同时在线
-- 实时消息传输
-- 显示在线用户数量
-- 消息历史记录
+### File Sharing
 
-### 局域网访问
-- 自动获取本机IP地址
-- 支持手机、平板等移动设备
-- 无需额外配置
+- Supports drag-and-drop file uploads
+- Supports all file types
+- File size limit: 500MB
+- Real-time file list display
+- One-click file download
 
-## 注意事项
-- 所有数据仅在内存中，重启服务器后会消失
-- 适合临时性的文件分享和团队协作
-- 请确保在安全的局域网环境中使用
-- 建议定期重启服务器以清理内存
+### Real-time Chat
 
-## 故障排除
+- Supports multiple users online simultaneously
+- Real-time message transmission
+- Displays online user count
+- Message history
 
-### 无法启动服务器
-- 检查Node.js是否正确安装
-- 检查端口3000是否被占用
-- 尝试使用其他端口：`PORT=3001 npm start`
+### LAN Access
 
-### 无法访问网页
-- 检查防火墙设置
-- 确认IP地址是否正确
-- 尝试使用localhost访问
+- Automatically retrieves local IP address
+- Supports mobile devices such as phones and tablets
+- No extra configuration needed
 
-### 文件上传失败
-- 检查文件大小是否超过100MB
-- 检查网络连接
-- 刷新页面重试
+## Notes
 
-## 技术支持
-如遇到问题，请检查：
-1. Node.js版本是否符合要求
-2. 网络连接是否正常
-3. 防火墙是否阻止了连接
-4. 端口是否被其他程序占用
+- All data is stored in memory only and will disappear after the server restarts.
+- Suitable for temporary file sharing and team collaboration.
+- Please ensure usage in a secure LAN environment.
+- It is recommended to restart the server periodically to clear memory.
+
+## Troubleshooting
+
+### Server Fails to Start
+
+- Check if Node.js is correctly installed.
+- Check if port 3000 is occupied.
+- Try using another port: `PORT=3001 npm start`
+
+### Cannot Access Webpage
+
+- Check firewall settings.
+- Confirm if the IP address is correct.
+- Try accessing via localhost.
+
+### File Upload Failed
+
+- Check if file size exceeds 500MB.
+- Check network connection.
+- Refresh the page and try again.
+
+## Technical Support
+
+If you encounter problems, please check:
+
+1. If Node.js version meets the requirements.
+2. If the network connection is normal.
+3. If the firewall is blocking the connection.
+4. If the port is occupied by other programs.

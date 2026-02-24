@@ -1,108 +1,111 @@
-# 局域网文件和信息共享系统
+# LAN File and Message Sharing System
 
-## 项目简介
+[中文文档](README_zh.md)
 
-这是一个基于WebSocket的实时局域网文件和信息共享系统，无需存储数据，所有文件和信息都在内存中实时传输。适合在局域网内的多台设备之间快速共享文件和进行实时交流。
+## Project Introduction
 
-## 主要功能
+This is a WebSocket-based real-time LAN file and message sharing system. It does not store data; all files and messages are transmitted in memory in real-time. It is suitable for quick file sharing and real-time communication between multiple devices within a local area network (LAN).
 
-- 📁 **文件共享**: 支持拖拽上传文件，实时分享给局域网内其他用户
-- 💬 **实时聊天**: 支持文字消息的实时发送和接收
-- 📋 **消息复制**: 支持复制单条消息或全部消息到剪贴板
-- 🌐 **局域网发现**: 自动发现局域网内运行的服务
-- 📱 **响应式设计**: 支持手机、平板、电脑等各种设备
-- ⚡ **无需存储**: 所有数据都在内存中，不占用磁盘空间
+## Key Features
 
-## 技术架构
+- 📁 **File Sharing**: Supports drag-and-drop file uploads, real-time sharing with other users in the LAN.
+- 💬 **Real-time Chat**: Supports real-time sending and receiving of text messages.
+- 📋 **Message Copy**: Supports copying single messages or all messages to the clipboard.
+- 🌐 **LAN Discovery**: Automatically discovers services running in the LAN.
+- 📱 **Responsive Design**: Supports various devices such as mobile phones, tablets, and computers.
+- ⚡ **No Storage**: All data is in memory and does not occupy disk space.
 
-- **后端**: Node.js + Express + Socket.IO
-- **前端**: HTML5 + CSS3 + JavaScript (原生)
-- **通信**: WebSocket实时通信
-- **文件处理**: 内存流处理，不存储到磁盘
+## Technical Architecture
 
-## 快速开始
+- **Backend**: Node.js + Express + Socket.IO
+- **Frontend**: HTML5 + CSS3 + JavaScript (Native)
+- **Communication**: WebSocket real-time communication
+- **File Processing**: Memory stream processing, no disk storage
 
-### 安装依赖
+## Quick Start
+
+### Install Dependencies
 
 ```bash
 npm install
 ```
 
-### 启动服务
+### Start Service
 
 ```bash
 npm start
 ```
 
-### 访问系统
+### Access System
 
-1. 在浏览器中打开 `http://localhost:3000`
-2. 在局域网内其他设备上访问 `http://[服务器IP]:3000`
+1. Open `http://localhost:3000` in your browser.
+2. Access `http://[Server IP]:3000` on other devices in the LAN.
 
-## 使用说明
+## Usage Instructions
 
-### 文件共享
+### File Sharing
 
-1. 将文件拖拽到上传区域
-2. 文件会立即显示在共享列表中
-3. 其他用户可以点击下载文件
-4. 文件在服务器重启后会消失（不存储）
+1. Drag and drop files to the upload area.
+2. The file will immediately appear in the shared list.
+3. Other users can click to download the file.
+4. Files will disappear after the server restarts (not stored).
 
-### 实时聊天
+### Real-time Chat
 
-1. 在聊天框中输入消息
-2. 按回车或点击发送按钮
-3. 消息会实时显示给所有在线用户
-4. 鼠标悬停在消息上可看到复制按钮
-5. 点击复制按钮可复制单条消息
-6. 点击"复制全部"按钮可复制所有消息
+1. Enter a message in the chat box.
+2. Press Enter or click the send button.
+3. The message will be displayed to all online users in real-time.
+4. Hover over a message to see the copy button.
+5. Click the copy button to copy a single message.
+6. Click the "Copy All" button to copy all messages.
 
-### 局域网访问
+### LAN Access
 
-- 服务器启动后会显示本机IP地址
-- 局域网内其他设备使用该IP地址访问
-- 支持手机、平板等移动设备
+- The server will display the local IP address after startup.
+- Use this IP address to access from other devices in the LAN.
+- Supports mobile devices such as phones and tablets.
 
-## 项目结构
+## Project Structure
 
 ```
 share/
-├── README.md           # 项目说明文档
-├── package.json        # 项目依赖配置
-├── server.js          # 服务器主文件
-├── public/            # 前端静态文件
-│   ├── index.html     # 主页面
-│   ├── style.css      # 样式文件
-│   └── script.js      # 前端逻辑
-└── uploads/           # 临时文件目录（重启后清空）
+├── README.md           # Project documentation
+├── README_zh.md        # Project documentation (Chinese)
+├── package.json        # Project dependency configuration
+├── server.js           # Server main file
+├── public/             # Frontend static files
+│   ├── index.html      # Main page
+│   ├── style.css       # Style file
+│   └── script.js       # Frontend logic
+└── uploads/            # Temporary file directory (cleared after restart)
 ```
 
-## 注意事项
+## Notes
 
-- 本系统不存储任何数据，重启服务器后所有文件和信息都会消失
-- 适合临时性的文件分享和团队协作
-- 请确保在安全的局域网环境中使用
-- 建议定期重启服务器以清理内存
+- This system does not store any data; all files and messages will disappear after restarting the server.
+- Suitable for temporary file sharing and team collaboration.
+- Please ensure use in a secure LAN environment.
+- It is recommended to restart the server periodically to clear memory.
 
-## 系统要求
+## System Requirements
 
-- Node.js 14.0 或更高版本
-- 现代浏览器支持（Chrome、Firefox、Safari、Edge）
-- 局域网网络连接
+- Node.js 14.0 or higher
+- Modern browser support (Chrome, Firefox, Safari, Edge)
+- LAN network connection
 
-## 项目特点
+## Project Features
 
-- ✅ **无需存储**: 所有数据在内存中，重启后自动清空
-- ✅ **实时同步**: 基于WebSocket的实时通信
-- ✅ **跨平台**: 支持Windows、Linux、Mac
-- ✅ **响应式**: 支持手机、平板、电脑等各种设备
-- ✅ **简单易用**: 一键启动，无需复杂配置
-- ✅ **安全可靠**: 仅在局域网内使用，数据不持久化
+- ✅ **No Storage**: All data in memory, automatically cleared after restart.
+- ✅ **Real-time Sync**: Real-time communication based on WebSocket.
+- ✅ **Cross-platform**: Supports Windows, Linux, Mac.
+- ✅ **Responsive**: Supports mobile phones, tablets, computers, etc.
+- ✅ **Easy to Use**: One-click start, no complex configuration required.
+- ✅ **Secure & Reliable**: Used only within LAN, data is not persisted.
 
-## 技术亮点
+## Technical Highlights
 
-- 使用Node.js + Express + Socket.IO构建高性能服务器
-- 前端采用原生JavaScript，无框架依赖
-- 支持拖拽上传，用户体验友好
-- 内存流处理，避免磁盘I/O
-- 实时状态同步，多用户协作
+- High-performance server built with Node.js + Express + Socket.IO.
+- Frontend uses native JavaScript, no framework dependencies.
+- Supports drag-and-drop upload, user-friendly experience.
+- Memory stream processing, avoiding disk I/O.
+- Real-time status synchronization, multi-user collaboration.
