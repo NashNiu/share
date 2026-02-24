@@ -44,17 +44,31 @@ const upload = multer({
   }
 });
 
-// 获取本机IP地址
-function getLocalIP() {
+// 获取所有可用的IP地址
+function getAllLocalIPs() {
   const interfaces = os.networkInterfaces();
+  const ips = [];
   for (const name of Object.keys(interfaces)) {
     for (const iface of interfaces[name]) {
       if (iface.family === 'IPv4' && !iface.internal) {
-        return iface.address;
+        // 排除常见的虚拟网络地址
+        if (!iface.address.startsWith('172.26.') && 
+            !iface.address.startsWith('169.254.')) {
+          ips.push({
+            address: iface.address,
+            interface: name
+          });
+        }
       }
     }
   }
-  return 'localhost';
+  return ips;
+}
+
+// 获取本机IP地址（优先返回第一个）
+function getLocalIP() {
+  const ips = getAllLocalIPs();
+  return ips.length > 0 ? ips[0].address : 'localhost';
 }
 
 // 生成唯一ID
@@ -250,14 +264,23 @@ io.on('connection', (socket) => {
 // 启动服务器
 const PORT = process.env.PORT || 3000;
 const HOST = getLocalIP();
+const allIPs = getAllLocalIPs();
 
 server.listen(PORT, '0.0.0.0', () => {
   console.log('\n🚀 局域网文件和信息共享系统已启动!');
   console.log('=====================================');
   console.log(`📱 本机访问: http://localhost:${PORT}`);
-  console.log(`🌐 局域网访问: http://${HOST}:${PORT}`);
+  console.log('🌐 局域网访问地址:');
+  if (allIPs.length > 0) {
+    allIPs.forEach((ip, index) => {
+      console.log(`   ${index + 1}. http://${ip.address}:${PORT} (${ip.interface})`);
+    });
+  } else {
+    console.log(`   http://${HOST}:${PORT}`);
+  }
   console.log('=====================================');
   console.log('💡 提示: 在局域网内其他设备上使用上述IP地址访问');
+  console.log('   ⚠️  如果无法访问，请尝试其他IP地址');
   console.log('📁 功能: 文件共享 + 实时聊天');
   console.log('⚡ 特点: 无需存储，内存实时传输');
   console.log('=====================================\n');
