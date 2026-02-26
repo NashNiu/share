@@ -151,11 +151,17 @@ class ShareApp {
         this.socket.on('fileUploaded', (fileData) => {
             this.addFileToList(fileData);
             this.showNotification(`File "${fileData.name}" uploaded successfully`, 'success');
+            // Update count immediately
+            const fileCountEl = document.getElementById('fileCount');
+            if (fileCountEl) fileCountEl.textContent = this.files.size;
         });
 
         // Message related events
         this.socket.on('newMessage', (message) => {
             this.addMessageToList(message);
+            // Update count immediately
+            const msgCountEl = document.getElementById('messageCount');
+            if (msgCountEl) msgCountEl.textContent = this.messages.length;
         });
 
         this.socket.on('userJoined', (user) => {
@@ -229,6 +235,10 @@ class ShareApp {
             
             const fileList = document.getElementById('fileList');
             fileList.innerHTML = '';
+
+            // Update file count from server response
+            const fileCountEl = document.getElementById('fileCount');
+            if (fileCountEl) fileCountEl.textContent = files.length;
 
             if (files.length === 0) {
                 fileList.innerHTML = `
@@ -521,9 +531,10 @@ class ShareApp {
         messageElement.className = 'message';
         
         const isOwn = message.user === this.userName;
+        const normalizedContent = this.normalizeMessageText(message.content);
         messageElement.innerHTML = `
             <div class="message-content ${isOwn ? 'own' : ''}">
-                ${this.escapeHtml(message.content)}
+                ${this.escapeHtml(normalizedContent)}
             </div>
             <div class="message-info ${isOwn ? 'own' : ''}">
                 <span><i class="fas fa-user"></i> ${this.escapeHtml(message.user)}</span>
@@ -548,6 +559,10 @@ class ShareApp {
             
             const messagesContainer = document.getElementById('messagesContainer');
             messagesContainer.innerHTML = '';
+
+            // Update message count from server response
+            const msgCountEl = document.getElementById('messageCount');
+            if (msgCountEl) msgCountEl.textContent = messages.length;
 
             if (messages.length === 0) {
                 messagesContainer.innerHTML = `
@@ -589,6 +604,9 @@ class ShareApp {
         userList.forEach(user => {
             this.users.set(user.id, user);
         });
+        // Update online user count
+        const userCountEl = document.getElementById('userCount');
+        if (userCountEl) userCountEl.textContent = this.users.size;
     }
 
     // Update status info
@@ -665,6 +683,11 @@ class ShareApp {
             .replace(/>/g, "&gt;")
             .replace(/"/g, "&quot;")
             .replace(/'/g, "&#039;");
+    }
+
+    normalizeMessageText(text) {
+        if (!text) return '';
+        return text.replace(/^[\s\r\n]+/, '').replace(/[\s\r\n]+$/, '');
     }
 }
 

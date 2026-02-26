@@ -35,6 +35,15 @@ const memoryStore = {
   users: new Map() // Store online users
 };
 
+// Broadcast current status to all clients
+function broadcastStatus() {
+  io.emit('serverStatus', {
+    filesCount: memoryStore.files.size,
+    messagesCount: memoryStore.messages.length,
+    usersCount: memoryStore.users.size
+  });
+}
+
 // Configure multer for file uploads (memory storage)
 const storage = multer.memoryStorage();
 const upload = multer({ 
@@ -116,6 +125,9 @@ app.post('/upload', upload.single('file'), (req, res) => {
       uploader: fileInfo.uploader,
       sizeFormatted: formatFileSize(fileInfo.size)
     });
+
+    // Update status
+    broadcastStatus();
 
     console.log(`File upload successful: ${fileInfo.name} (${formatFileSize(fileInfo.size)})`);
     res.json({ success: true, fileId: fileId });
@@ -200,22 +212,30 @@ app.get('/api/server-info', (req, res) => {
 io.on('connection', (socket) => {
   console.log(`User connected: ${socket.id}`);
 
+  // Register anonymous user on connect to ensure accurate online count
+  const anonUser = {
+    id: socket.id,
+    name: 'Anonymous User',
+    joinTime: new Date().toISOString()
+  };
+  memoryStore.users.set(socket.id, anonUser);
+  io.emit('userList', Array.from(memoryStore.users.values()));
+  broadcastStatus();
+
   // User join
   socket.on('userJoin', (userData) => {
-    const user = {
-      id: socket.id,
-      name: userData.name || 'Anonymous User',
-      joinTime: new Date().toISOString()
-    };
-    
+    const safeName = userData.name || 'Anonymous User';
+    const existing = memoryStore.users.get(socket.id) || { id: socket.id, joinTime: new Date().toISOString() };
+    const user = { ...existing, name: safeName };
     memoryStore.users.set(socket.id, user);
-    
-    // Broadcast user joined message
+
+    // Broadcast user joined message (only if name is not anonymous or changed)
     socket.broadcast.emit('userJoined', user);
-    
-    // Send current online user list
-    socket.emit('userList', Array.from(memoryStore.users.values()));
-    
+
+    // Send updated online user list and status to all clients
+    io.emit('userList', Array.from(memoryStore.users.values()));
+    broadcastStatus();
+
     console.log(`User joined: ${user.name}`);
   });
 
@@ -240,6 +260,9 @@ io.on('connection', (socket) => {
     // Broadcast message to all clients
     io.emit('newMessage', message);
     
+    // Update status
+    broadcastStatus();
+    
     console.log(`Message: ${message.user}: ${message.content}`);
   });
 
@@ -248,7 +271,11 @@ io.on('connection', (socket) => {
     const user = memoryStore.users.get(socket.id);
     if (user) {
       memoryStore.users.delete(socket.id);
+      // Notify others user left
       socket.broadcast.emit('userLeft', user);
+      // Broadcast updated user list and status
+      io.emit('userList', Array.from(memoryStore.users.values()));
+      broadcastStatus();
       console.log(`User left: ${user.name}`);
     }
   });
