@@ -248,7 +248,7 @@ body {
 }
 
 .message {
-    margin-bottom: 15px;
+    margin-bottom: 10px;
     display: flex;
     flex-direction: column;
 }
@@ -257,9 +257,8 @@ body {
     background: white;
     padding: 12px 16px;
     border-radius: 15px;
-    max-width: 80%;
+    max-width: 70%;
     word-wrap: break-word;
-    white-space: pre-wrap;
     box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
     border: 1px solid #e2e8f0;
 }
@@ -274,7 +273,7 @@ body {
 .message-info {
     font-size: 0.8rem;
     color: #a0aec0;
-    margin-top: 5px;
+    margin-top: 4px;
     display: flex;
     gap: 10px;
     align-items: center;
@@ -491,13 +490,19 @@ body {
     padding: 15px 20px;
     border-radius: 10px;
     box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
-    transform: translateX(400px);
-    transition: transform 0.3s ease;
+    transform: translateX(calc(100% + 40px));
+    transition: transform 0.3s ease, opacity 0.2s ease;
     z-index: 1000;
+    max-width: 360px;
+    width: auto;
+    opacity: 0;
+    pointer-events: none;
 }
 
 .notification.show {
     transform: translateX(0);
+    opacity: 1;
+    pointer-events: auto;
 }
 
 .notification-content {
