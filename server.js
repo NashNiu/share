@@ -194,7 +194,7 @@ app.get('/api/server-info', (req, res) => {
   try {
     res.json({
       ip: getLocalIP(),
-      port: PORT,
+      port: server.address() ? server.address().port : BASE_PORT,
       status: 'running',
       uptime: process.uptime(),
       memory: process.memoryUsage(),
