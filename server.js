@@ -294,35 +294,45 @@ const HOST = getLocalIP();
 const allIPs = getAllLocalIPs();
 
 function startServer(port) {
-  server.listen(port, '0.0.0.0')
-    .once('listening', () => {
-      console.log('\n🚀 LAN File and Message Sharing System Started!');
-      console.log('=====================================');
-      console.log(`📱 Local Access: http://localhost:${port}`);
-      console.log('🌐 LAN Access Addresses:');
-      if (allIPs.length > 0) {
-        allIPs.forEach((ip, index) => {
-          console.log(`   ${index + 1}. http://${ip.address}:${port} (${ip.interface})`);
-        });
-      } else {
-        console.log(`   http://${HOST}:${port}`);
-      }
-      console.log('=====================================');
-      console.log('💡 Tip: Use the above IP addresses to access from other devices in the LAN');
-      console.log('   ⚠️  If unable to access, please try other IP addresses');
-      console.log('📁 Features: File Sharing + Real-time Chat');
-      console.log('⚡ Features: No Storage, Memory Real-time Transmission');
-      console.log('=====================================\n');
-    })
-    .once('error', (err) => {
-      if (err.code === 'EADDRINUSE') {
-        console.log(`⚠️  Port ${port} is in use, trying ${port + 1}...`);
-        server.close();
-        startServer(port + 1);
-      } else {
-        throw err;
-      }
-    });
+  function onListening() {
+    cleanup();
+    console.log('\n🚀 LAN File and Message Sharing System Started!');
+    console.log('=====================================');
+    console.log(`📱 Local Access: http://localhost:${port}`);
+    console.log('🌐 LAN Access Addresses:');
+    if (allIPs.length > 0) {
+      allIPs.forEach((ip, index) => {
+        console.log(`   ${index + 1}. http://${ip.address}:${port} (${ip.interface})`);
+      });
+    } else {
+      console.log(`   http://${HOST}:${port}`);
+    }
+    console.log('=====================================');
+    console.log('💡 Tip: Use the above IP addresses to access from other devices in the LAN');
+    console.log('   ⚠️  If unable to access, please try other IP addresses');
+    console.log('📁 Features: File Sharing + Real-time Chat');
+    console.log('⚡ Features: No Storage, Memory Real-time Transmission');
+    console.log('=====================================\n');
+  }
+
+  function onError(err) {
+    cleanup();
+    if (err.code === 'EADDRINUSE') {
+      console.log(`⚠️  Port ${port} is in use, trying ${port + 1}...`);
+      startServer(port + 1);
+    } else {
+      throw err;
+    }
+  }
+
+  function cleanup() {
+    server.removeListener('listening', onListening);
+    server.removeListener('error', onError);
+  }
+
+  server.once('listening', onListening);
+  server.once('error', onError);
+  server.listen(port, '0.0.0.0');
 }
 
 startServer(Number(BASE_PORT));
