@@ -159,6 +159,39 @@ app.get('/download/:fileId', (req, res) => {
   }
 });
 
+// Delete file endpoint
+app.delete('/files/:fileId', (req, res) => {
+  try {
+    const fileId = req.params.fileId;
+    const fileInfo = memoryStore.files.get(fileId);
+
+    if (!fileInfo) {
+      return res.status(404).json({ error: 'File not found' });
+    }
+
+    // Only the uploader may delete their own file
+    const requester = req.body.uploader || 'Anonymous User';
+    if (requester !== fileInfo.uploader) {
+      return res.status(403).json({ error: 'Only the uploader can delete this file' });
+    }
+
+    // Remove from memory
+    memoryStore.files.delete(fileId);
+
+    // Broadcast deletion to all clients
+    io.emit('fileDeleted', { id: fileId, name: fileInfo.name });
+
+    // Update status
+    broadcastStatus();
+
+    console.log(`File deleted: ${fileInfo.name}`);
+    res.json({ success: true, fileId: fileId });
+  } catch (error) {
+    console.error('File delete error:', error);
+    res.status(500).json({ error: 'File delete failed' });
+  }
+});
+
 // Get file list
 app.get('/files', (req, res) => {
   try {

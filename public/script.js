@@ -156,6 +156,14 @@ class ShareApp {
             if (fileCountEl) fileCountEl.textContent = this.files.size;
         });
 
+        this.socket.on('fileDeleted', (fileData) => {
+            this.removeFileFromList(fileData.id);
+            this.showNotification(`File "${fileData.name}" was deleted`, 'info');
+            // Update count immediately
+            const fileCountEl = document.getElementById('fileCount');
+            if (fileCountEl) fileCountEl.textContent = this.files.size;
+        });
+
         // Message related events
         this.socket.on('newMessage', (message) => {
             this.addMessageToList(message);
@@ -269,6 +277,9 @@ class ShareApp {
             emptyState.remove();
         }
 
+        // Only the uploader can delete their own file
+        const canDelete = fileData.uploader === this.userName;
+
         const fileItem = document.createElement('div');
         fileItem.className = 'file-item';
         fileItem.innerHTML = `
@@ -287,11 +298,58 @@ class ShareApp {
                 <button class="btn btn-primary btn-small" onclick="app.downloadFile('${fileData.id}', '${fileData.name}')">
                     <i class="fas fa-download"></i> Download
                 </button>
+                ${canDelete ? `
+                <button class="btn btn-danger btn-small" onclick="app.deleteFile('${fileData.id}', '${fileData.name}')">
+                    <i class="fas fa-trash"></i> Delete
+                </button>` : ''}
             </div>
         `;
 
+        fileItem.dataset.fileId = fileData.id;
         fileList.appendChild(fileItem);
         this.files.set(fileData.id, fileData);
+    }
+
+    // Delete file
+    async deleteFile(fileId, fileName) {
+        if (!confirm(`Are you sure you want to delete "${fileName}"?`)) return;
+
+        try {
+            const response = await fetch(`/files/${fileId}`, {
+                method: 'DELETE',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ uploader: this.userName })
+            });
+            const result = await response.json();
+
+            if (!result.success) {
+                this.showNotification(result.error || `Failed to delete "${fileName}"`, 'error');
+            }
+            // On success, the 'fileDeleted' event updates the UI for everyone
+        } catch (error) {
+            console.error('File delete error:', error);
+            this.showNotification(`Failed to delete "${fileName}"`, 'error');
+        }
+    }
+
+    // Remove file from list
+    removeFileFromList(fileId) {
+        const fileList = document.getElementById('fileList');
+        const fileItem = fileList.querySelector(`[data-file-id="${fileId}"]`);
+        if (fileItem) {
+            fileItem.remove();
+        }
+        this.files.delete(fileId);
+
+        // Restore empty state if no files remain
+        if (this.files.size === 0) {
+            fileList.innerHTML = `
+                <div class="empty-state">
+                    <i class="fas fa-folder-open"></i>
+                    <p>No shared files yet</p>
+                </div>
+            `;
+        }
     }
 
     // Get file type icon
