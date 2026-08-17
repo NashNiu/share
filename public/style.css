@@ -178,6 +178,38 @@ body {
     color: #a0aec0 !important;
 }
 
+/* Upload Progress */
+.upload-progress {
+    display: none;
+    margin-top: 12px;
+}
+
+.upload-progress.show {
+    display: block;
+}
+
+.upload-progress-track {
+    height: 6px;
+    border-radius: 3px;
+    background: #e2e8f0;
+    overflow: hidden;
+}
+
+.upload-progress-fill {
+    height: 100%;
+    width: 0;
+    border-radius: 3px;
+    background: #667eea;
+    transition: width 0.2s ease;
+}
+
+.upload-progress-text {
+    margin-top: 6px;
+    font-size: 0.85rem !important;
+    color: #718096;
+    word-break: break-all;
+}
+
 /* File List */
 .file-list {
     flex: 1;

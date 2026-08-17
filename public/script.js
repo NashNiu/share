@@ -158,7 +158,10 @@ class ShareApp {
 
         this.socket.on('fileDeleted', (fileData) => {
             this.removeFileFromList(fileData.id);
-            this.showNotification(`File "${fileData.name}" was deleted`, 'info');
+            const why = fileData.reason === 'evicted'
+                ? 'was removed to free server memory'
+                : 'was deleted';
+            this.showNotification(`File "${fileData.name}" ${why}`, 'info');
             // Update count immediately
             const fileCountEl = document.getElementById('fileCount');
             if (fileCountEl) fileCountEl.textContent = this.files.size;
@@ -200,27 +203,87 @@ class ShareApp {
                 continue;
             }
 
+            try {
+                await this.uploadOneFile(file);
+                console.log(`File upload successful: ${file.name}`);
+            } catch (error) {
+                console.error('File upload error:', error);
+                this.showNotification(`File "${file.name}" upload failed: ${error.message}`, 'error');
+            } finally {
+                this.setUploadProgress(null);
+            }
+        }
+    }
+
+    // Upload a single file via XHR so progress is visible — fetch reports none,
+    // which makes a multi-minute large-file upload look like nothing is happening.
+    uploadOneFile(file) {
+        return new Promise((resolve, reject) => {
             const formData = new FormData();
             formData.append('file', file);
             formData.append('uploader', this.userName);
 
-            try {
-                const response = await fetch('/upload', {
-                    method: 'POST',
-                    body: formData
-                });
+            const xhr = new XMLHttpRequest();
+            xhr.open('POST', '/upload');
 
-                const result = await response.json();
-                if (result.success) {
-                    console.log(`File upload successful: ${file.name}`);
-                } else {
-                    this.showNotification(`File "${file.name}" upload failed`, 'error');
+            xhr.upload.addEventListener('progress', (e) => {
+                if (!e.lengthComputable) return;
+                this.setUploadProgress({
+                    name: file.name,
+                    percent: Math.round((e.loaded / e.total) * 100),
+                    loaded: e.loaded,
+                    total: e.total
+                });
+            });
+
+            xhr.addEventListener('load', () => {
+                let result = {};
+                try {
+                    result = JSON.parse(xhr.responseText);
+                } catch (e) {
+                    return reject(new Error(`server returned ${xhr.status}`));
                 }
-            } catch (error) {
-                console.error('File upload error:', error);
-                this.showNotification(`File "${file.name}" upload failed`, 'error');
-            }
+                if (xhr.status >= 200 && xhr.status < 300 && result.success) {
+                    resolve(result);
+                } else {
+                    reject(new Error(result.error || `server returned ${xhr.status}`));
+                }
+            });
+
+            xhr.addEventListener('error', () => reject(new Error('network error or connection closed')));
+            xhr.addEventListener('abort', () => reject(new Error('upload aborted')));
+            xhr.addEventListener('timeout', () => reject(new Error('upload timed out')));
+
+            this.setUploadProgress({ name: file.name, percent: 0, loaded: 0, total: file.size });
+            xhr.send(formData);
+        });
+    }
+
+    // Render (or clear, when passed null) the upload progress bar
+    setUploadProgress(state) {
+        const bar = document.getElementById('uploadProgress');
+        const fill = document.getElementById('uploadProgressFill');
+        const label = document.getElementById('uploadProgressText');
+        if (!bar || !fill || !label) return;
+
+        if (!state) {
+            bar.classList.remove('show');
+            fill.style.width = '0%';
+            return;
         }
+
+        bar.classList.add('show');
+        fill.style.width = `${state.percent}%`;
+        label.textContent =
+            `${state.name} — ${state.percent}% (${this.formatFileSize(state.loaded)} / ${this.formatFileSize(state.total)})`;
+    }
+
+    // Format a byte count for display
+    formatFileSize(bytes) {
+        if (!bytes) return '0 B';
+        const units = ['B', 'KB', 'MB', 'GB'];
+        const i = Math.min(Math.floor(Math.log(bytes) / Math.log(1024)), units.length - 1);
+        return `${parseFloat((bytes / Math.pow(1024, i)).toFixed(1))} ${units[i]}`;
     }
 
     // Download file
@@ -413,10 +476,11 @@ class ShareApp {
     optimizeFileUpload() {
         const fileInput = document.getElementById('fileInput');
         
-        // Mobile file selection optimization
+        // Mobile file selection optimization.
+        // Deliberately no `capture` attribute: it forces the camera to open
+        // instead of the file picker, making existing files unselectable.
         if (fileInput) {
             fileInput.setAttribute('accept', '*/*');
-            fileInput.setAttribute('capture', 'environment'); // Allow camera capture
         }
 
         // Add upload progress hint
@@ -702,11 +766,12 @@ class ShareApp {
         }
         
         notification.classList.add('show');
-        
-        // Hide after 3 seconds
-        setTimeout(() => {
+
+        // Errors linger longer — a 3s toast at the end of a long upload is easy to miss
+        clearTimeout(this._notificationTimer);
+        this._notificationTimer = setTimeout(() => {
             notification.classList.remove('show');
-        }, 3000);
+        }, type === 'error' ? 8000 : 3000);
     }
 
     // Format time
