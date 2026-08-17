@@ -16,6 +16,13 @@ const fs = require('fs');
 // Create Express app
 const app = express();
 const server = http.createServer(app);
+
+// Node's default requestTimeout is 300s, which silently destroys any upload
+// whose body takes longer than 5 minutes on a slow LAN link — the request never
+// reaches the /upload handler. Allow enough time for a 500MB file on a slow link.
+server.requestTimeout = 30 * 60 * 1000; // 30 minutes for the full request body
+server.headersTimeout = 60 * 1000;      // headers must still arrive promptly
+
 const io = socketIo(server, {
   cors: {
     origin: "*",
@@ -30,10 +37,15 @@ app.use(express.static('public'));
 
 // Memory storage (no persistence)
 const memoryStore = {
-  files: new Map(), // Store file data
+  files: new Map(), // Store file data, in upload order (oldest first)
   messages: [], // Store chat messages
-  users: new Map() // Store online users
+  users: new Map(), // Store online users
+  totalBytes: 0 // Bytes currently held by files
 };
+
+// Files are never persisted, so without a cap they accumulate until restart.
+// Once the cap is reached the oldest uploads are dropped to make room.
+const MAX_TOTAL_BYTES = Number(process.env.MAX_MEMORY_MB || 2048) * 1024 * 1024;
 
 // Broadcast current status to all clients
 function broadcastStatus() {
@@ -42,6 +54,30 @@ function broadcastStatus() {
     messagesCount: memoryStore.messages.length,
     usersCount: memoryStore.users.size
   });
+}
+
+// Remove a file from memory and tell every client it is gone
+function removeFile(fileId, fileInfo, reason = 'deleted') {
+  memoryStore.files.delete(fileId);
+  memoryStore.totalBytes -= fileInfo.size;
+  io.emit('fileDeleted', { id: fileId, name: fileInfo.name, reason: reason });
+}
+
+// Drop the oldest files until the store fits within MAX_TOTAL_BYTES.
+// `keepId` is the upload that triggered this, so it is never evicted to make
+// room for itself.
+function evictOldestFiles(keepId) {
+  for (const [fileId, fileInfo] of memoryStore.files) {
+    if (memoryStore.totalBytes <= MAX_TOTAL_BYTES) return;
+    if (fileId === keepId) continue;
+    removeFile(fileId, fileInfo, 'evicted');
+    console.log(`Evicted (memory limit): ${fileInfo.name} (${formatFileSize(fileInfo.size)})`);
+  }
+
+  if (memoryStore.totalBytes > MAX_TOTAL_BYTES) {
+    console.warn(`Memory limit ${formatFileSize(MAX_TOTAL_BYTES)} exceeded by a single file ` +
+      `(${formatFileSize(memoryStore.totalBytes)} held)`);
+  }
 }
 
 // Configure multer for file uploads (memory storage)
@@ -95,7 +131,21 @@ function formatFileSize(bytes) {
 }
 
 // File upload endpoint
-app.post('/upload', upload.single('file'), (req, res) => {
+app.post('/upload', (req, res, next) => {
+  upload.single('file')(req, res, (err) => {
+    if (err) {
+      // Without this, multer errors fall through to Express' default handler,
+      // which replies with an HTML stack trace the client cannot parse as JSON.
+      const tooLarge = err.code === 'LIMIT_FILE_SIZE';
+      const reason = tooLarge
+        ? 'File exceeds the 500MB limit'
+        : err.message || 'File upload failed';
+      console.error(`File upload rejected: ${reason}`);
+      return res.status(tooLarge ? 413 : 400).json({ error: reason });
+    }
+    next();
+  });
+}, (req, res) => {
   try {
     if (!req.file) {
       return res.status(400).json({ error: 'No file uploaded' });
@@ -112,8 +162,10 @@ app.post('/upload', upload.single('file'), (req, res) => {
       uploader: req.body.uploader || 'Anonymous User'
     };
 
-    // Store in memory
+    // Store in memory, dropping the oldest uploads if we are over budget
     memoryStore.files.set(fileId, fileInfo);
+    memoryStore.totalBytes += fileInfo.size;
+    evictOldestFiles(fileId);
 
     // Broadcast file info to all clients
     io.emit('fileUploaded', {
@@ -175,11 +227,8 @@ app.delete('/files/:fileId', (req, res) => {
       return res.status(403).json({ error: 'Only the uploader can delete this file' });
     }
 
-    // Remove from memory
-    memoryStore.files.delete(fileId);
-
-    // Broadcast deletion to all clients
-    io.emit('fileDeleted', { id: fileId, name: fileInfo.name });
+    // Remove from memory and broadcast the deletion to all clients
+    removeFile(fileId, fileInfo);
 
     // Update status
     broadcastStatus();
@@ -233,7 +282,9 @@ app.get('/api/server-info', (req, res) => {
       memory: process.memoryUsage(),
       filesCount: memoryStore.files.size,
       messagesCount: memoryStore.messages.length,
-      usersCount: memoryStore.users.size
+      usersCount: memoryStore.users.size,
+      bytesUsed: memoryStore.totalBytes,
+      bytesLimit: MAX_TOTAL_BYTES
     });
   } catch (error) {
     console.error('Get server info error:', error);

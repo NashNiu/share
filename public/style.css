@@ -7,10 +7,16 @@
     box-sizing: border-box;
 }
 
+html {
+    height: 100%;
+}
+
 body {
     font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
     background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-    min-height: 100vh;
+    height: 100vh;
+    height: 100dvh;
+    overflow: hidden;
     color: #333;
     line-height: 1.6;
 }
@@ -19,9 +25,10 @@ body {
     max-width: 1400px;
     margin: 0 auto;
     padding: 20px;
-    min-height: 100vh;
+    height: 100%;
     display: flex;
     flex-direction: column;
+    min-height: 0;
 }
 
 /* Header Styles */
@@ -33,6 +40,7 @@ body {
     margin-bottom: 20px;
     box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
     border: 1px solid rgba(255, 255, 255, 0.2);
+    flex-shrink: 0;
 }
 
 .header-content {
@@ -83,6 +91,7 @@ body {
     grid-template-columns: 1fr 1fr;
     gap: 20px;
     flex: 1;
+    min-height: 0;
     margin-bottom: 20px;
 }
 
@@ -103,7 +112,9 @@ body {
     border: 1px solid rgba(255, 255, 255, 0.2);
     display: flex;
     flex-direction: column;
-    height: 600px;
+    height: 100%;
+    min-height: 0;
+    overflow: hidden;
 }
 
 .section-header {
@@ -113,6 +124,7 @@ body {
     margin-bottom: 20px;
     padding-bottom: 15px;
     border-bottom: 2px solid #f1f5f9;
+    flex-shrink: 0;
 }
 
 .section-header h2 {
@@ -138,6 +150,7 @@ body {
     transition: all 0.3s ease;
     cursor: pointer;
     background: #f8fafc;
+    flex-shrink: 0;
 }
 
 .upload-area:hover,
@@ -148,9 +161,9 @@ body {
 }
 
 .upload-content i {
-    font-size: 3rem;
+    font-size: 1rem;
     color: #a0aec0;
-    margin-bottom: 15px;
+    margin-bottom: 2px;
     display: block;
 }
 
@@ -165,10 +178,44 @@ body {
     color: #a0aec0 !important;
 }
 
+/* Upload Progress */
+.upload-progress {
+    display: none;
+    margin-top: 12px;
+}
+
+.upload-progress.show {
+    display: block;
+}
+
+.upload-progress-track {
+    height: 6px;
+    border-radius: 3px;
+    background: #e2e8f0;
+    overflow: hidden;
+}
+
+.upload-progress-fill {
+    height: 100%;
+    width: 0;
+    border-radius: 3px;
+    background: #667eea;
+    transition: width 0.2s ease;
+}
+
+.upload-progress-text {
+    margin-top: 6px;
+    font-size: 0.85rem !important;
+    color: #718096;
+    word-break: break-all;
+}
+
 /* File List */
 .file-list {
     flex: 1;
+    min-height: 0;
     overflow-y: auto;
+    overscroll-behavior: contain;
     border-radius: 10px;
     background: #f8fafc;
     padding: 10px;
@@ -239,12 +286,13 @@ body {
 /* Chat Area */
 .messages-container {
     flex: 1;
+    min-height: 0;
     overflow-y: auto;
+    overscroll-behavior: contain;
     padding: 15px;
     background: #f8fafc;
     border-radius: 10px;
     margin-bottom: 15px;
-    max-height: 400px;
 }
 
 .message {
@@ -335,6 +383,7 @@ body {
     display: flex;
     gap: 10px;
     align-items: flex-end;
+    flex-shrink: 0;
 }
 
 .message-input textarea {
@@ -429,6 +478,7 @@ body {
     padding: 15px 20px;
     box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
     border: 1px solid rgba(255, 255, 255, 0.2);
+    flex-shrink: 0;
 }
 
 .footer-content {
@@ -532,10 +582,19 @@ body {
 
 /* Responsive Design */
 @media (max-width: 768px) {
+    /* Single-column layout: let the page scroll instead of squeezing both panels */
+    body {
+        height: auto;
+        min-height: 100vh;
+        overflow: auto;
+    }
+
     .container {
         padding: 8px;
+        height: auto;
+        min-height: 100vh;
     }
-    
+
     .header {
         padding: 15px;
         margin-bottom: 15px;
@@ -563,13 +622,15 @@ body {
     
     .main-content {
         gap: 15px;
+        min-height: auto;
     }
-    
+
     .file-section,
     .chat-section {
         height: auto;
         min-height: 400px;
         padding: 15px;
+        overflow: visible;
     }
     
     .section-header {
