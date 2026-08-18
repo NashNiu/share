@@ -11,6 +11,8 @@ class ShareApp {
         this.files = new Map();
         this.messages = [];
         this.users = new Map();
+        this.activeXhr = null;          // in-flight upload, so it can be aborted
+        this.cancelAllRequested = false; // drains the rest of the upload queue
         this.isMobile = this.detectMobile();
         
         this.init();
@@ -63,6 +65,25 @@ class ShareApp {
         fileInput.addEventListener('change', (e) => {
             this.uploadFiles(e.target.files);
         });
+
+        // Cancel controls live inside uploadArea, whose click handler opens the
+        // file picker — stopPropagation keeps cancelling from reopening it.
+        const skipBtn = document.getElementById('skipCurrentUpload');
+        const cancelAllBtn = document.getElementById('cancelAllUploads');
+
+        if (skipBtn) {
+            skipBtn.addEventListener('click', (e) => {
+                e.stopPropagation();
+                this.skipCurrentUpload();
+            });
+        }
+
+        if (cancelAllBtn) {
+            cancelAllBtn.addEventListener('click', (e) => {
+                e.stopPropagation();
+                this.cancelAllUploads();
+            });
+        }
 
         // Refresh file list
         refreshBtn.addEventListener('click', () => {
@@ -197,7 +218,14 @@ class ShareApp {
     async uploadFiles(files) {
         if (!files || files.length === 0) return;
 
-        for (const file of files) {
+        this.cancelAllRequested = false;
+        const queue = Array.from(files);
+        let index = 0;
+
+        for (; index < queue.length; index++) {
+            if (this.cancelAllRequested) break;
+
+            const file = queue[index];
             if (file.size > 500 * 1024 * 1024) {
                 this.showNotification(`File "${file.name}" exceeds 500MB limit`, 'error');
                 continue;
@@ -207,12 +235,39 @@ class ShareApp {
                 await this.uploadOneFile(file);
                 console.log(`File upload successful: ${file.name}`);
             } catch (error) {
-                console.error('File upload error:', error);
-                this.showNotification(`File "${file.name}" upload failed: ${error.message}`, 'error');
+                if (error.cancelled) {
+                    console.log(`File upload cancelled: ${file.name}`);
+                    // "cancel all" reports once below instead of per file
+                    if (!this.cancelAllRequested) {
+                        this.showNotification(`Cancelled "${file.name}"`, 'info');
+                    }
+                } else {
+                    console.error('File upload error:', error);
+                    this.showNotification(`File "${file.name}" upload failed: ${error.message}`, 'error');
+                }
             } finally {
                 this.setUploadProgress(null);
             }
         }
+
+        if (this.cancelAllRequested) {
+            const skipped = queue.length - index;
+            this.showNotification(
+                skipped > 0 ? `Upload cancelled, ${skipped} file(s) skipped` : 'Upload cancelled',
+                'info');
+            this.cancelAllRequested = false;
+        }
+    }
+
+    // Abort the file being uploaded; the queue moves on to the next one
+    skipCurrentUpload() {
+        if (this.activeXhr) this.activeXhr.abort();
+    }
+
+    // Abort the current file and drop everything still queued behind it
+    cancelAllUploads() {
+        this.cancelAllRequested = true;
+        if (this.activeXhr) this.activeXhr.abort();
     }
 
     // Upload a single file via XHR so progress is visible — fetch reports none,
@@ -251,10 +306,20 @@ class ShareApp {
             });
 
             xhr.addEventListener('error', () => reject(new Error('network error or connection closed')));
-            xhr.addEventListener('abort', () => reject(new Error('upload aborted')));
+            xhr.addEventListener('abort', () => {
+                const cancelled = new Error('upload cancelled');
+                cancelled.cancelled = true;
+                reject(cancelled);
+            });
+
+            // Fires after load/error/abort/timeout alike
+            xhr.addEventListener('loadend', () => {
+                if (this.activeXhr === xhr) this.activeXhr = null;
+            });
             xhr.addEventListener('timeout', () => reject(new Error('upload timed out')));
 
             this.setUploadProgress({ name: file.name, percent: 0, loaded: 0, total: file.size });
+            this.activeXhr = xhr;
             xhr.send(formData);
         });
     }

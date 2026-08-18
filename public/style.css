@@ -203,6 +203,13 @@ body {
     transition: width 0.2s ease;
 }
 
+.upload-progress-actions {
+    display: flex;
+    justify-content: center;
+    gap: 8px;
+    margin-top: 8px;
+}
+
 .upload-progress-text {
     margin-top: 6px;
     font-size: 0.85rem !important;
